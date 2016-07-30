@@ -1,14 +1,14 @@
 # unifi-acme.sh
 
-The `update-unifi-certificate.sh` script enables easy updating of the certificate used by the [UniFi Controller](https://www.ubnt.com/enterprise/software). The script has been tested on Debian 8 "Jessie" with the Unifi Controller installed via the official Debian repository.
+The `update-unifi-certificate.sh` script enables easy updating of the certificate used by the [UniFi Controller](https://www.ubnt.com/enterprise/software). The script has been tested on Debian 8 "Jessie" with Unifi Controller installed via the official Debian repository.
 
 ## How to use
 
-* Install [acme.sh](https://github.com/Neilpang/acme.sh) and follow the instructions to create a certificate for the domain you want to use to access the UniFi controller.
+* Install [acme.sh](https://github.com/Neilpang/acme.sh) and follow the instructions to create a certificate for the domain you want to use to access UniFi Controller.
 * Update the `update-unifi-certificate.sh` script:
   * Set the `DOMAIN` variable to the domain for which you previously generated a certificate using acme.sh.
   * Set the `ACME_SH` variable to the location of the `acme.sh` installation.
-* Execute `update-unifi-certificate.sh` to update the Unifi Controller.
+* Execute `update-unifi-certificate.sh` to update Unifi Controller.
 
 ## TODO
 
