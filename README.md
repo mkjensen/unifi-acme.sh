@@ -6,7 +6,7 @@ The `update-unifi-certificate.sh` script enables easy updating of the certificat
 
 * Install [acme.sh](https://github.com/Neilpang/acme.sh) and follow the instructions to create a certificate for the domain you want to use to access UniFi Controller.
 * Update the `update-unifi-certificate.sh` script:
-  * Set the `DOMAIN` variable to the domain for which you previously generated a certificate using acme.sh.
+  * Set the `DOMAIN` variable to the domain for which you previously generated a certificate using `acme.sh`.
   * Set the `ACME_SH` variable to the location of the `acme.sh` installation.
 * Execute `update-unifi-certificate.sh` to update Unifi Controller.
 
