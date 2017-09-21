@@ -35,6 +35,9 @@ openssl pkcs12 -export -passout pass:aircontrolenterprise \
  -out ${WORKDIR}/keystore.pkcs12 -name unifi \
  -CAfile ${WORKDIR}/fullchain.cer -caname root
 
+echo "* Stopping nginx..."
+systemctl stop nginx
+
 echo "* Stopping UniFi controller..."
 systemctl stop unifi
 
@@ -74,3 +77,6 @@ java -jar /usr/lib/unifi/lib/ace.jar import_cert \
 
 echo "* Starting UniFi Controller..."
 systemctl start unifi
+
+echo "* Starting nginx..."
+systemctl start nginx
