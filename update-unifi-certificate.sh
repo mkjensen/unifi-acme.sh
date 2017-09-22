@@ -17,16 +17,36 @@
 # USER CONFIGURATION BEGIN
 
 # The domain for which acme.sh generated/generates a certificate
-DOMAIN="my.domain.tld"
+DOMAIN="$1"
 
 # The path to the acme.sh installation
-ACME_SH="/path/to/.acme.sh"
+ACME_SH="$2"
 
 # USER CONFIGURATION END
+
+uname -a | grep CloudKey > /dev/null
+CLOUD_KEY="$?"
 
 echo "Updating UniFi Controller certificate"
 
 WORKDIR="${ACME_SH}/${DOMAIN}"
+
+if [ $CLOUD_KEY -eq 0 ]; then
+	echo "* Stopping nginx..."
+	systemctl stop nginx
+
+	if [ ! -f /usr/lib/unifi/data/keystore.backup ]; then
+		echo "* Moving controller keystore for initial setup..."
+		mv /usr/lib/unifi/data/keystore /usr/lib/unifi/data/keystore.backup
+		cp /etc/ssl/private/unifi.keystore.jks /usr/lib/unifi/data/keystore
+
+		echo "* Modifying controller config for initial setup..."
+		sed -i /etc/default/unifi -e '/UNIFI_SSL_KEYSTORE/s/^/# /'
+	fi
+fi
+
+echo "* Stopping UniFi controller..."
+systemctl stop unifi
 
 echo "* Creating PKCS12 keystore..."
 openssl pkcs12 -export -passout pass:aircontrolenterprise \
@@ -34,12 +54,6 @@ openssl pkcs12 -export -passout pass:aircontrolenterprise \
  -inkey ${WORKDIR}/${DOMAIN}.key \
  -out ${WORKDIR}/keystore.pkcs12 -name unifi \
  -CAfile ${WORKDIR}/fullchain.cer -caname root
-
-echo "* Stopping nginx..."
-systemctl stop nginx
-
-echo "* Stopping UniFi controller..."
-systemctl stop unifi
 
 echo "* Importing certificate into Unifi Controller keystore..."
 keytool -noprompt -trustcacerts -importkeystore -deststorepass aircontrolenterprise \
@@ -75,8 +89,28 @@ java -jar /usr/lib/unifi/lib/ace.jar import_cert \
  ${WORKDIR}/ca.cer \
  ${WORKDIR}/identrust.cer
 
+if [ $CLOUD_KEY -eq 0 ]; then
+	if [ ! -f /etc/ssl/private/cloudkey.key.backup ]; then
+		echo "* Setting permissions on certificate and key for initial setup..."
+		chown root:ssl-cert ${WORKDIR}/fullchain.cer
+		chown root:ssl-cert ${WORKDIR}/${DOMAIN}.key
+
+		chmod 640 ${WORKDIR}/fullchain.cer
+		chmod 640 ${WORKDIR}/${DOMAIN}.key
+
+		echo "* Moving nginx certificates for initial setup..."
+		mv /etc/ssl/private/cloudkey.crt /etc/ssl/private/cloudkey.crt.backup
+		mv /etc/ssl/private/cloudkey.key /etc/ssl/private/cloudkey.key.backup
+
+		ln -s ${WORKDIR}/fullchain.cer /etc/ssl/private/cloudkey.crt
+		ln -s ${WORKDIR}/${DOMAIN}.key /etc/ssl/private/cloudkey.key
+	fi
+fi
+
 echo "* Starting UniFi Controller..."
 systemctl start unifi
 
-echo "* Starting nginx..."
-systemctl start nginx
+if [ $CLOUD_KEY -eq 0 ]; then
+	echo "* Starting nginx..."
+	systemctl start nginx
+fi
