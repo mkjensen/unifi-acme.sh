@@ -14,18 +14,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# USER CONFIGURATION BEGIN
-
 # The domain for which acme.sh generated/generates a certificate
 DOMAIN="$1"
 
 # The path to the acme.sh installation
 ACME_SH="$2"
 
-# USER CONFIGURATION END
-
+# Are we on a CloudKey?
 uname -a | grep CloudKey > /dev/null
 CLOUD_KEY="$?"
+
+# Find out what user we are
+CURRENT_USER=$(whoami)
 
 echo "Updating UniFi Controller certificate"
 
@@ -92,8 +92,8 @@ java -jar /usr/lib/unifi/lib/ace.jar import_cert \
 if [ $CLOUD_KEY -eq 0 ]; then
 	if [ ! -f /etc/ssl/private/cloudkey.key.backup ]; then
 		echo "* Setting permissions on certificate and key for initial setup..."
-		chown root:ssl-cert ${WORKDIR}/fullchain.cer
-		chown root:ssl-cert ${WORKDIR}/${DOMAIN}.key
+		chown ${CURRENT_USER}:ssl-cert ${WORKDIR}/fullchain.cer
+		chown ${CURRENT_USER}:ssl-cert ${WORKDIR}/${DOMAIN}.key
 
 		chmod 640 ${WORKDIR}/fullchain.cer
 		chmod 640 ${WORKDIR}/${DOMAIN}.key
