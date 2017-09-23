@@ -14,28 +14,45 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+if [ -z "$1" ]; then
+	echo "No domain included.  See documentation for usage instructions."
+	exit 1
+fi
+
 # The domain for which acme.sh generated/generates a certificate
 DOMAIN="$1"
 
-# The path to the acme.sh installation
-ACME_SH="$2"
+if [ -z "$2" ]; then
+	# No certificate location specified.  Check the default location first.
+	if [ -d "${HOME}/.acme.sh/${DOMAIN}" ]; then
+		WORKDIR="${HOME}/.acme.sh/${DOMAIN}"
+		echo "Found certificate directory at default location: ${WORKDIR}"
+	else
+		echo "No certificate directory path included.  See documentation for usage instructions."
+		exit 1
+	fi
+else
+	WORKDIR="$2"
+	if [ ! -d "${WORKDIR}" ]; then
+		echo "Certificate directory not found: ${WORKDIR}"
+		exit 1
+	fi
+fi
 
 # Are we on a CloudKey?
 uname -a | grep CloudKey > /dev/null
 CLOUD_KEY="$?"
 
 # Find out what user we are
-CURRENT_USER=$(whoami)
+CURRENT_USER="$(whoami)"
 
 echo "Updating UniFi Controller certificate"
-
-WORKDIR="${ACME_SH}/${DOMAIN}"
 
 if [ $CLOUD_KEY -eq 0 ]; then
 	echo "* Stopping nginx..."
 	systemctl stop nginx
 
-	if [ ! -f /usr/lib/unifi/data/keystore.backup ]; then
+	if [ ! -f "/usr/lib/unifi/data/keystore.backup" ]; then
 		echo "* Moving controller keystore for initial setup..."
 		mv /usr/lib/unifi/data/keystore /usr/lib/unifi/data/keystore.backup
 		cp /etc/ssl/private/unifi.keystore.jks /usr/lib/unifi/data/keystore
@@ -50,17 +67,17 @@ systemctl stop unifi
 
 echo "* Creating PKCS12 keystore..."
 openssl pkcs12 -export -passout pass:aircontrolenterprise \
- -in ${WORKDIR}/${DOMAIN}.cer \
- -inkey ${WORKDIR}/${DOMAIN}.key \
- -out ${WORKDIR}/keystore.pkcs12 -name unifi \
- -CAfile ${WORKDIR}/fullchain.cer -caname root
+ -in "${WORKDIR}/${DOMAIN}.cer" \
+ -inkey "${WORKDIR}/${DOMAIN}.key" \
+ -out "${WORKDIR}/keystore.pkcs12" -name unifi \
+ -CAfile "${WORKDIR}/fullchain.cer" -caname root
 
 echo "* Importing certificate into Unifi Controller keystore..."
 keytool -noprompt -trustcacerts -importkeystore -deststorepass aircontrolenterprise \
  -destkeypass aircontrolenterprise -destkeystore /usr/lib/unifi/data/keystore \
- -srckeystore ${WORKDIR}/keystore.pkcs12 -srcstoretype PKCS12 -srcstorepass aircontrolenterprise -alias unifi
+ -srckeystore "${WORKDIR}/keystore.pkcs12" -srcstoretype PKCS12 -srcstorepass aircontrolenterprise -alias unifi
 
-cat > ${WORKDIR}/identrust.cer << EOF
+cat > "${WORKDIR}/identrust.cer" << EOF
 -----BEGIN CERTIFICATE-----
 MIIDSjCCAjKgAwIBAgIQRK+wgNajJ7qJMDmGLvhAazANBgkqhkiG9w0BAQUFADA/
 MSQwIgYDVQQKExtEaWdpdGFsIFNpZ25hdHVyZSBUcnVzdCBDby4xFzAVBgNVBAMT
@@ -85,25 +102,25 @@ EOF
 
 echo "* Importing certificate via ace.jar..."
 java -jar /usr/lib/unifi/lib/ace.jar import_cert \
- ${WORKDIR}/${DOMAIN}.cer \
- ${WORKDIR}/ca.cer \
- ${WORKDIR}/identrust.cer
+ "${WORKDIR}/${DOMAIN}.cer" \
+ "${WORKDIR}/ca.cer" \
+ "${WORKDIR}/identrust.cer"
 
 if [ $CLOUD_KEY -eq 0 ]; then
-	if [ ! -f /etc/ssl/private/cloudkey.key.backup ]; then
+	if [ ! -f "/etc/ssl/private/cloudkey.key.backup" ]; then
 		echo "* Setting permissions on certificate and key for initial setup..."
-		chown ${CURRENT_USER}:ssl-cert ${WORKDIR}/fullchain.cer
-		chown ${CURRENT_USER}:ssl-cert ${WORKDIR}/${DOMAIN}.key
+		chown ${CURRENT_USER}:ssl-cert "${WORKDIR}/fullchain.cer"
+		chown ${CURRENT_USER}:ssl-cert "${WORKDIR}/${DOMAIN}.key"
 
-		chmod 640 ${WORKDIR}/fullchain.cer
-		chmod 640 ${WORKDIR}/${DOMAIN}.key
+		chmod 640 "${WORKDIR}/fullchain.cer"
+		chmod 640 "${WORKDIR}/${DOMAIN}.key"
 
 		echo "* Moving nginx certificates for initial setup..."
 		mv /etc/ssl/private/cloudkey.crt /etc/ssl/private/cloudkey.crt.backup
 		mv /etc/ssl/private/cloudkey.key /etc/ssl/private/cloudkey.key.backup
 
-		ln -s ${WORKDIR}/fullchain.cer /etc/ssl/private/cloudkey.crt
-		ln -s ${WORKDIR}/${DOMAIN}.key /etc/ssl/private/cloudkey.key
+		ln -s "${WORKDIR}/fullchain.cer" /etc/ssl/private/cloudkey.crt
+		ln -s "${WORKDIR}/${DOMAIN}.key" /etc/ssl/private/cloudkey.key
 	fi
 fi
 
