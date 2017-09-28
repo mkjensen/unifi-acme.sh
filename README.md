@@ -1,6 +1,6 @@
 # unifi-acme.sh
 
-The `update-unifi-certificate.sh` script enables easy updating of the certificate used by [UniFi Controller](https://www.ubnt.com/enterprise/software). The script has been tested on Debian 8 "Jessie" with Unifi Controller installed via the official Debian repository and on a UniFi CloudKey on firmware version 0.7.3.
+The `update-unifi-certificate.sh` script enables easy updating of the certificate used by [UniFi Controller](https://www.ubnt.com/enterprise/software). [acme.sh](https://github.com/Neilpang/acme.sh) is used to obtain a certificate from [Let's Encrypt](https://letsencrypt.org). The script has been tested on Debian 8 "Jessie" with Unifi Controller installed via the official Debian repository and on a UniFi CloudKey on firmware version 0.7.3.
 
 ## How to use
 
